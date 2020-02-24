@@ -55,6 +55,13 @@ declare module "redux-loop" {
     simulate(): A;
   }
 
+  declare export interface DelayedActionCmd<A> {
+    type: "DELAYED_ACTION";
+    actionToDispatch: A;
+    delayMs: number;
+    simulate(): A;
+  }
+
   declare export interface MapCmd<A, B = any, C = any> {
     type: "MAP";
     tagger: ((...args:Array<C|B>) => A) | ((subAction: B) => A);
@@ -78,6 +85,7 @@ declare module "redux-loop" {
 
   declare export type CmdType<A, B = any, C = any> =
     | ActionCmd<A>
+    | DelayedActionCmd<A>
     | ListCmd<A>
     | MapCmd<A>
     | NoneCmd
@@ -90,6 +98,7 @@ declare module "redux-loop" {
   declare export function loop<S, A>(state: S, cmd: CmdType<A>): Loop<S, A>;
 
   declare function Cmd$action<A>(action: A): ActionCmd<A>;
+  declare function Cmd$delayedAction<A>(action: A, delayMs: number): DelayedActionCmd<A>;
   declare function Cmd$batch<A>(cmds: CmdType<A>[]): BatchCmd<A>;
   declare function Cmd$sequence<A>(cmds: CmdType<A>[]): SequenceCmd<A>;
   declare function Cmd$list<A>(
@@ -137,6 +146,7 @@ declare module "redux-loop" {
 
   declare export var Cmd: {
     action: typeof Cmd$action,
+    delayedAction: typeof Cmd$delayedAction,
     batch: typeof Cmd$batch,
     sequence: typeof Cmd$sequence,
     list: typeof Cmd$list,

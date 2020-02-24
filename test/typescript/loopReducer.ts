@@ -69,7 +69,7 @@ const todosReducer: LoopReducer<TodoState, TodoActions> = (
     case 'ADD_TODO':
       return loop(
         { ...state, todos: [...state.todos, action.text] },
-        Cmd.list([Cmd.none, Cmd.action(noop())])
+        Cmd.list([Cmd.none, Cmd.action(noop()), Cmd.delayedAction(noop(), 100)])
       );
     case 'NOOP':
       return state;

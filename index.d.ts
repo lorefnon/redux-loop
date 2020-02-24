@@ -49,6 +49,13 @@ export interface ActionCmd<A extends Action> {
   simulate(): A;
 }
 
+export interface DelayedActionCmd<A extends Action> {
+  readonly type: 'DELAYED_ACTION';
+  readonly actionToDispatch: A;
+  readonly delayMs: number;
+  simulate(): A;
+}
+
 export interface MapCmd<A extends Action> {
   readonly type: 'MAP';
   readonly tagger: ActionCreator<A>;
@@ -74,6 +81,7 @@ export type BatchCmd<A extends Action> = ListCmd<A>;
 
 export type CmdType<A extends Action> =
   | ActionCmd<A>
+  | DelayedActionCmd<A>
   | ListCmd<A>
   | MapCmd<A>
   | NoneCmd
@@ -97,6 +105,7 @@ export namespace Cmd {
   export const getState: unique symbol;
   export const none: NoneCmd;
   export function action<A extends Action>(action: A): ActionCmd<A>;
+  export function delayedAction<A extends Action>(action: A, delayMs: number): DelayedActionCmd<A>;
   export function batch<A extends Action>(cmds: CmdType<A>[]): BatchCmd<A>;
   export function sequence<A extends Action>(cmds: CmdType<A>[]): SequenceCmd<A>;
 
