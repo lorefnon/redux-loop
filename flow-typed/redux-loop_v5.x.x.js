@@ -55,11 +55,13 @@ declare module "redux-loop" {
     simulate(): A;
   }
 
-  declare export interface DelayedActionCmd<A> {
-    type: "DELAYED_ACTION";
-    actionToDispatch: A;
+  declare export interface ScheduledCmd<A> {
+    type: "SCHEDULED";
+    nestedCmd: CmdType<A>;
     delayMs: number;
-    simulate(): A;
+    isRepeating: boolean;
+    onScheduledActionCreator?: ActionCreator<A, number>;
+    simulate(simulations?: CmdSimulation<any> | MultiCmdSimulation): A[] | A | null;
   }
 
   declare export interface MapCmd<A, B = any, C = any> {
@@ -85,7 +87,7 @@ declare module "redux-loop" {
 
   declare export type CmdType<A, B = any, C = any> =
     | ActionCmd<A>
-    | DelayedActionCmd<A>
+    | ScheduledCmd<A>
     | ListCmd<A>
     | MapCmd<A>
     | NoneCmd
@@ -98,9 +100,21 @@ declare module "redux-loop" {
   declare export function loop<S, A>(state: S, cmd: CmdType<A>): Loop<S, A>;
 
   declare function Cmd$action<A>(action: A): ActionCmd<A>;
-  declare function Cmd$delayedAction<A>(action: A, delayMs: number): DelayedActionCmd<A>;
   declare function Cmd$batch<A>(cmds: CmdType<A>[]): BatchCmd<A>;
   declare function Cmd$sequence<A>(cmds: CmdType<A>[]): SequenceCmd<A>;
+
+  declare function Cmd$schedule<A>(
+    cmd: CmdType<A>,
+    delayMs: number,
+    onScheduledActionCreator?: ActionCreator<A, number>
+  ): ScheduledCmd<A>;
+
+  declare function Cmd$scheduleRepeating<A>(
+    cmd: CmdType<A>,
+    delayMs: number,
+    onScheduledActionCreator?: ActionCreator<A, number>
+  ): ScheduledCmd<A>;
+
   declare function Cmd$list<A>(
     cmds: CmdType<A>[],
     options?: {
@@ -146,7 +160,8 @@ declare module "redux-loop" {
 
   declare export var Cmd: {
     action: typeof Cmd$action,
-    delayedAction: typeof Cmd$delayedAction,
+    schedule: typeof Cmd$schedule,
+    scheduleRepeating: typeof Cmd$scheduleRepeating,
     batch: typeof Cmd$batch,
     sequence: typeof Cmd$sequence,
     list: typeof Cmd$list,
