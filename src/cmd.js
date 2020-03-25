@@ -66,14 +66,16 @@ function handleRunCmd(cmd, dispatch, getState, loopConfig = {}) {
 function handleParallelList(
   { cmds, batch = false },
   dispatch,
+  wrappedDispatch,
   getState,
   loopConfig = {}
 ) {
   const promises = cmds
     .map(nestedCmd => {
-      const possiblePromise = executeCmd(
+      const possiblePromise = executeCmdInternal(
         nestedCmd,
         dispatch,
+        wrappedDispatch,
         getState,
         loopConfig
       );
@@ -82,7 +84,7 @@ function handleParallelList(
       }
 
       return possiblePromise.then(result => {
-        return Promise.all(result.map(a => dispatch(a)));
+        return Promise.all(result.map(a => wrappedDispatch(a)));
       });
     })
     .filter(x => x);
@@ -101,6 +103,7 @@ function handleParallelList(
 function handleSequenceList(
   { cmds, batch = false },
   dispatch,
+  wrappedDispatch,
   getState,
   loopConfig = {}
 ) {
@@ -110,12 +113,18 @@ function handleSequenceList(
   }
 
   const result = new Promise(resolve => {
-    let firstPromise = executeCmd(firstCmd, dispatch, getState, loopConfig);
+    let firstPromise = executeCmdInternal(
+      firstCmd,
+      dispatch,
+      wrappedDispatch,
+      getState,
+      loopConfig
+    );
     firstPromise = firstPromise || Promise.resolve([]);
     firstPromise.then(result => {
       let executePromise;
       if (!batch) {
-        executePromise = Promise.all(result.map(a => dispatch(a)));
+        executePromise = Promise.all(result.map(a => wrappedDispatch(a)));
       } else {
         executePromise = Promise.resolve();
       }
@@ -124,9 +133,10 @@ function handleSequenceList(
           batch,
           sequence: true
         });
-        const remainingPromise = executeCmd(
+        const remainingPromise = executeCmdInternal(
           remainingSequence,
           dispatch,
+          wrappedDispatch,
           getState,
           loopConfig
         );
@@ -145,6 +155,16 @@ function handleSequenceList(
 }
 
 export function executeCmd(cmd, dispatch, getState, loopConfig = {}) {
+  return executeCmdInternal(cmd, dispatch, dispatch, getState, loopConfig);
+}
+
+function executeCmdInternal(
+  cmd,
+  dispatch,
+  wrappedDispatch,
+  getState,
+  loopConfig = {}
+) {
   switch (cmd.type) {
     case cmdTypes.RUN:
       return handleRunCmd(cmd, dispatch, getState, loopConfig);
@@ -154,13 +174,26 @@ export function executeCmd(cmd, dispatch, getState, loopConfig = {}) {
 
     case cmdTypes.LIST:
       return cmd.sequence
-        ? handleSequenceList(cmd, dispatch, getState, loopConfig)
-        : handleParallelList(cmd, dispatch, getState, loopConfig);
+        ? handleSequenceList(
+            cmd,
+            dispatch,
+            wrappedDispatch,
+            getState,
+            loopConfig
+          )
+        : handleParallelList(
+            cmd,
+            dispatch,
+            wrappedDispatch,
+            getState,
+            loopConfig
+          );
 
     case cmdTypes.MAP: {
-      const possiblePromise = executeCmd(
+      const possiblePromise = executeCmdInternal(
         cmd.nestedCmd,
         dispatch,
+        action => wrappedDispatch(cmd.tagger(...cmd.args, action)),
         getState,
         loopConfig
       );

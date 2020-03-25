@@ -506,6 +506,17 @@ describe('Cmds', () => {
         ]);
       });
 
+      it("wraps actions from unbatched lists before dispatching them through the passed dispatch (since it can't return them)", async () => {
+        let action1 = actionCreator1(123),
+          action2 = actionCreator1(456);
+        let list = Cmd.list([Cmd.action(action1), Cmd.action(action2)]);
+        let cmd = Cmd.map(list, noArgTagger);
+        let result = executeCmd(cmd, dispatch, getState);
+        await expect(result).resolves.toEqual([]);
+        expect(dispatch).toHaveBeenCalledWith(actionCreator2(action1));
+        expect(dispatch).toHaveBeenCalledWith(actionCreator2(action2));
+      });
+
       it('passes the args to the tagger if specified', async () => {
         let action1 = actionCreator1(123),
           action2 = actionCreator1(456);
